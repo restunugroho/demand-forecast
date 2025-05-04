@@ -30,6 +30,15 @@ hour_weights = {
     ]
 }
 
+# Daftar tanggal libur nasional / libur panjang
+holiday_dates = {
+    "2024-12-25",  # Natal
+    "2025-01-01",  # Tahun Baru
+    "2024-04-10", "2024-04-11", "2024-04-12",  # Libur panjang
+    "2024-05-01",  # Hari Buruh
+    "2024-06-17",  # Idul Adha
+}
+
 # Fungsi waktu dalam jam tertentu
 def generate_time_in_hour(hour):
     return time(hour, random.randint(0, 59), random.randint(0, 59))
@@ -80,17 +89,31 @@ def generate_daily_orders(order_count, current_date):
             all_events.extend(events)
     return all_events
 
-# Generate dari start sampai end date
+# Fungsi generate data range dengan seasonalitas dan tren
 def generate_data_range(start_date: str, end_date: str):
     start = datetime.strptime(start_date, "%Y-%m-%d").date()
     end = datetime.strptime(end_date, "%Y-%m-%d").date()
     data = []
+    total_days = (end - start).days + 1
 
-    for current_date in (start + timedelta(n) for n in range((end - start).days + 1)):
+    for day_index, current_date in enumerate(start + timedelta(n) for n in range(total_days)):
         weekday = current_date.weekday()
         is_weekend = weekday >= 5
+        is_holiday = current_date.strftime("%Y-%m-%d") in holiday_dates
+
+        # Base order count
         order_count = 7500 if is_weekend else 5000
-        print(f"{current_date} ({'Weekend' if is_weekend else 'Weekday'}) - {order_count} orders")
+
+        # Seasonal effect: lonjakan saat libur
+        if is_holiday:
+            order_count = int(order_count * 1.5)
+
+        # Trend effect: peningkatan linear selama periode waktu
+        trend_multiplier = 1 + (day_index / total_days) * 0.2  # naik 20% sampai akhir
+        order_count = int(order_count * trend_multiplier)
+
+        print(f"{current_date} ({'Weekend' if is_weekend else 'Weekday'}{' + Holiday' if is_holiday else ''}) - {order_count} orders")
+
         daily_events = generate_daily_orders(order_count, current_date)
         data.extend(daily_events)
 
@@ -98,9 +121,8 @@ def generate_data_range(start_date: str, end_date: str):
 
 # Main
 if __name__ == "__main__":
-    # Ganti sesuai kebutuhan:
-    start_date = "2025-04-01"
-    end_date = "2025-04-07"
+    start_date = "2025-05-01"
+    end_date = "2025-05-07"
 
     all_data = generate_data_range(start_date, end_date)
     df = pd.DataFrame(all_data)
