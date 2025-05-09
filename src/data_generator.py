@@ -1,7 +1,12 @@
 import random
-import uuid
 from datetime import datetime, timedelta, time
 import pandas as pd
+import itertools
+# from google.cloud import bigquery
+# from google.oauth2 import service_account
+
+# Counter order_id mulai dari 1000
+order_id_counter = itertools.count(1000)
 
 # Konfigurasi outlet & menu
 outlets = [
@@ -45,7 +50,7 @@ def generate_time_in_hour(hour):
 
 # Fungsi generate 1 order (multi-status)
 def generate_order(outlet, base_time):
-    order_id = str(uuid.uuid4())
+    order_id = str(next(order_id_counter))
     item = random.choice(menu_items)
     order_type = random.choice(order_types)
     canceled = random.random() < 0.1  # 10% kemungkinan dibatalkan
@@ -53,22 +58,36 @@ def generate_order(outlet, base_time):
 
     for i, status in enumerate(statuses):
         timestamp = base_time + timedelta(minutes=i * random.randint(2, 5))
-        events.append({
-            "order_id": order_id,
-            "outlet_name": outlet["name"],
-            "location": outlet["location"],
-            "menu_item": item,
-            "order_type": order_type,
-            "status": status,
-            "timestamp": timestamp.isoformat()
-        })
-        if canceled and status == "created":
+        
+        # Untuk status selain 'created', set nilai lainnya menjadi None (null)
+        if status == "created":
             events.append({
                 "order_id": order_id,
                 "outlet_name": outlet["name"],
                 "location": outlet["location"],
                 "menu_item": item,
                 "order_type": order_type,
+                "status": status,
+                "timestamp": timestamp.isoformat()
+            })
+        else:
+            events.append({
+                "order_id": order_id,
+                "outlet_name": None,  # Kolom lainnya null
+                "location": None,
+                "menu_item": None,
+                "order_type": None,
+                "status": status,
+                "timestamp": timestamp.isoformat()
+            })
+
+        if canceled and status == "created":
+            events.append({
+                "order_id": order_id,
+                "outlet_name":None,
+                "location": None,
+                "menu_item": None,
+                "order_type": None,
                 "status": "canceled",
                 "timestamp": (timestamp + timedelta(minutes=1)).isoformat()
             })
@@ -119,6 +138,42 @@ def generate_data_range(start_date: str, end_date: str):
 
     return data
 
+# def upload_to_bigquery(df, table_id, sa_file_path, project_id, schema=None, if_exists="append"):
+#     """
+#     Upload DataFrame ke BigQuery menggunakan file Service Account JSON, dan buat dataset & tabel jika belum ada.
+    
+#     Args:
+#         df (pd.DataFrame): Data yang ingin diupload.
+#         table_id (str): Nama tabel lengkap BigQuery: `project.dataset.table`.
+#         sa_file_path (str): Path ke file service account JSON.
+#         project_id (str): Google Cloud Project ID.
+#         schema (list): Daftar schema untuk tabel (optional).
+#         if_exists (str): 'append' (default) atau 'replace' untuk hapus isi lama.
+
+#     Returns:
+#         None
+#     """
+#     # Inisialisasi kredensial dan client
+#     credentials = service_account.Credentials.from_service_account_file(sa_file_path)
+#     client = bigquery.Client(credentials=credentials, project=project_id)
+
+#     # Jika schema diberikan, buat dataset dan tabel jika belum ada
+#     if schema:
+#         create_dataset_and_table(client, table_id.split('.')[0], table_id, schema)
+
+#     # Konfigurasi job untuk upload
+#     job_config = bigquery.LoadJobConfig(
+#         write_disposition="WRITE_APPEND" if if_exists == "append" else "WRITE_TRUNCATE",
+#         autodetect=True,
+#         source_format=bigquery.SourceFormat.PARQUET if df.empty else bigquery.SourceFormat.CSV,
+#     )
+
+#     # Upload data
+#     job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
+
+#     job.result()  # Tunggu hingga selesai
+#     print(f"Upload selesai ke {table_id}, total baris: {len(df)}")
+
 # Main
 if __name__ == "__main__":
     start_date = "2025-05-01"
@@ -127,6 +182,7 @@ if __name__ == "__main__":
     all_data = generate_data_range(start_date, end_date)
     df = pd.DataFrame(all_data)
     df = df.sort_values(by="timestamp")
-    print(df.head())
+    print(df.sort_values('order_id').head())
+    # df
     # df.to_csv(f"food_orders_{start_date}_to_{end_date}.csv", index=False)
     print(f"Saved {len(df)} rows from {start_date} to {end_date}.")
