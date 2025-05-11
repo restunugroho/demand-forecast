@@ -176,13 +176,12 @@ def generate_data_range(start_date: str, end_date: str):
 
 # Main
 if __name__ == "__main__":
-    start_date = "2025-05-01"
+    start_date = "2024-05-01"
     end_date = "2025-05-07"
 
     all_data = generate_data_range(start_date, end_date)
     df = pd.DataFrame(all_data)
     df = df.sort_values(by="timestamp")
     print(df.sort_values('order_id').head())
-    # df
-    # df.to_csv(f"food_orders_{start_date}_to_{end_date}.csv", index=False)
+    df.to_parquet(f"../data/food_orders_{start_date}_to_{end_date}.parquet")
     print(f"Saved {len(df)} rows from {start_date} to {end_date}.")
