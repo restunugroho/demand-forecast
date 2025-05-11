@@ -83,4 +83,6 @@ df_merged['month'] = df_merged['datetime'].dt.month
 indo_holidays = holidays.Indonesia()
 df_merged['is_holiday'] = df_merged['datetime'].dt.date.isin(indo_holidays).astype(int)
 
+df_merged.to_parquet('../data/features_2024-05-01_to_2025-05-07.parquet')
+
 print(df_merged)
