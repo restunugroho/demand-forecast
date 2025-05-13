@@ -75,7 +75,7 @@ Each model's prediction is compared against actual demand for the test period. B
 
 ✅ Decision Tree. https://github.com/restunugroho/demand-forecast/blob/master/src/plots/decision_tree.png
 
-    Note: Place all plot images inside a plots/ folder in your GitHub repo so the links work in the README.
+
 
 🛠 Tech Stack
 
